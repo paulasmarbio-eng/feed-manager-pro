@@ -484,6 +484,26 @@ $(document).on('input', '.master-price-input', function() {
     calculateAll();
 });
 
+// Watch for changes in Operational Cost and trigger recalculation
+$(document).on('input', '.op-cost', function() {
+    calculateAll();
+});
+
+// Watch for changes in Material Names or KG amounts inside the table
+$(document).on('input', '.mat-name, .kg', function() {
+    calculateAll();
+});
+
+// Watch for changes in Batch Tons
+$(document).on('input', '.recipeTons', function() {
+    calculateAll();
+});
+
+// Watch for changes in Logistics/Transport
+$(document).on('input', '#globalTransport', function() {
+    calculateAll();
+});
+
    window.deleteMasterItem = (n) => { 
     if(confirm(`Remove ${n}?`)) { 
         // 1. Remove from data
