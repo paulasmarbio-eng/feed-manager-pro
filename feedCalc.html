@@ -478,9 +478,37 @@ $(document).on('input', '.master-price-input', function() {
     calculateAll();
 });
 
-    window.deleteMasterItem = (n) => { if(confirm(`Remove ${n}?`)) { delete priceMaster[n]; renderMasterList(); } };
-    window.addMasterItem = () => { const n = prompt("New Material:"); if(n) { priceMaster[n] = 0; renderMasterList(); } };
-    $(document).on('click', '.pdf-btn', () => window.print());
+   window.deleteMasterItem = (n) => { 
+    if(confirm(`Remove ${n}?`)) { 
+        // 1. Remove from data
+        delete priceMaster[n]; 
+        
+        // 2. Clear the HTML so renderMasterList knows it must rebuild
+        $('#masterList').empty(); 
+        
+        // 3. Rebuild the list
+        renderMasterList(); 
+    } 
+};
+
+window.addMasterItem = () => { 
+    const n = prompt("New Material Name:"); 
+    if(n) { 
+        // 1. Add to data
+        priceMaster[n] = 0; 
+        
+        // 2. Clear the HTML
+        $('#masterList').empty(); 
+        
+        // 3. Rebuild the list
+        renderMasterList(); 
+        
+        // 4. Focus the new input so you can type the price immediately
+        setTimeout(() => {
+            $(`.master-price-input[data-name="${n}"]`).focus();
+        }, 100);
+    } 
+};
 
     init();
 });
