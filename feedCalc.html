@@ -226,16 +226,24 @@ $(document).ready(function() {
             );
 
             $('#confirmImportBtn').off().on('click', () => {
-                if(isMat) {
-                    priceMaster = data;
-                    localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
-                } else {
-                    const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
-                    s["Shared Mix " + Date.now().toString().slice(-4)] = data;
-                    localStorage.setItem('poultry_templates', JSON.stringify(s));
-                }
-                window.location.href = window.location.pathname; // Clean URL
-            });
+    if(isMat) {
+        // Price Master Import
+        priceMaster = data;
+        localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+    } else {
+        // Recipe/Mix Import - Now with Renaming
+        const defaultName = "Imported Mix " + new Date().toLocaleDateString();
+        const customName = prompt("Enter a name for this shared formulation:", defaultName);
+        
+        if (customName === null) return; // User cancelled import
+
+        const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+        s[customName] = data;
+        localStorage.setItem('poultry_templates', JSON.stringify(s));
+    }
+    // Refresh page to clear URL and update lists
+    window.location.href = window.location.pathname; 
+});
             new bootstrap.Modal('#importModal').show();
         }
     }
