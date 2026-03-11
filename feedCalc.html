@@ -133,15 +133,22 @@
     </div>
 </div>
 
-<div class="modal fade no-print" id="importModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header bg-primary text-white fw-bold"><h5 class="modal-title">Data Received</h5></div>
-        <div class="modal-body">
-            <p id="importMsg" class="fw-bold mb-2"></p>
-            <div id="importPreview" class="p-2 bg-light rounded small border" style="max-height: 200px; overflow-y: auto;"></div>
+        <div class="modal fade no-print" id="templateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header fw-bold">
+                Manage Saved Mixes 
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul id="templateManageList" class="list-group">
+                    </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
-        <div class="modal-footer"><button class="btn btn-primary w-100 fw-bold" id="confirmImportBtn">Accept and Load Data</button></div>
-    </div></div>
+    </div>
 </div>
 
 <template id="recipeTemplate">
@@ -167,23 +174,7 @@
                 </div>
             </div>
         </div>
-        <div class="modal fade no-print" id="templateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header fw-bold">
-                Manage Saved Mixes 
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <ul id="templateManageList" class="list-group">
-                    </ul>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
                 <thead class="table-light small text-uppercase"><tr><th>Material</th><th class="text-center">KG/T</th><th class="text-end">Cost</th><th class="no-print"></th></tr></thead>
@@ -524,7 +515,10 @@ window.addMasterItem = () => {
         }, 100);
     } 
 };
-
+// --- PDF / PRINT ACTION ---
+$(document).on('click', '.pdf-btn', function() {
+    window.print();
+});
     init();
 });
 </script>
