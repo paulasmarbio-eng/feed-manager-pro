@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poultry Feed Manager Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { --dark-bg: #2c3e50; --navy: #1a252f; --accent: #2980b9; --success-green: #27ae60; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', system-ui, sans-serif; color: #333; padding-bottom: 80px; }
+        
+        /* Header & Dashboard */
+        .dashboard-header { background: var(--dark-bg); color: white; padding: 20px 15px; border-bottom: 4px solid var(--accent); }
+        .editable-field-wrapper { position: relative; }
+        .editable-input-dark {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px dashed rgba(255, 255, 255, 0.3) !important;
+            color: #fff !important;
+        }
+        .edit-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); opacity: 0.5; pointer-events: none; font-size: 14px; }
+        
+        /* Price Master Styles */
+        .price-master-card { background: #fff; border-radius: 12px; padding: 15px; margin: 15px 0; border: 1px solid #e0e0e0; }
+        .master-price-input { border-radius: 0 !important; border-bottom: 1px solid #eee !important; }
+        
+        /* Recipe Cards */
+        .recipe-card { border: 1px solid #d1d8e0; border-radius: 12px; margin-bottom: 20px; padding: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .recipe-name { border-color: transparent !important; border-bottom: 2px solid #eee !important; font-size: 1.1rem; }
+        .recipe-name:focus { border-bottom-color: var(--accent) !important; }
+        
+        /* Summary & Inventory */
+        .inventory-card { background: #fff; border-radius: 8px; border-left: 4px solid var(--accent); padding: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .total-payment-box { background: #e8f4fd; border: 2px solid var(--accent); padding: 20px; border-radius: 12px; margin-top: 20px; }
+        
+        /* Buttons */
+        .add-batch-btn { border: 2px dashed var(--accent); background: rgba(41, 128, 185, 0.05); color: var(--accent); font-weight: bold; transition: 0.2s; }
+        .add-batch-btn:hover { background: rgba(41, 128, 185, 0.1); }
+        .breakdown-text { font-size: 11px; color: #7f8c8d; font-weight: 600; display: block; margin-top: 4px; }
+
+        @media (max-width: 768px) { .recipe-header .col-md-2 { width: 33%; } }
+
+        @media print { 
+            @page { margin: 0.5cm; }
+            .no-print { display: none !important; } 
+            .editable-input-dark { border: none !important; color: #000 !important; background: transparent !important; padding: 0 !important; }
+            .edit-icon { display: none; }
+            .recipe-card { break-inside: avoid; border: 1px solid #eee; box-shadow: none; margin-bottom: 30px; }
+            body { padding-bottom: 0; background: white; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-0">
+    <div class="dashboard-header">
+        <div class="row align-items-center g-3">
+            <div class="col-8 col-md-9">
+                <label class="small text-info fw-bold text-uppercase d-block mb-1 no-print" style="font-size: 10px; letter-spacing: 1px;">Facility / Company Name</label>
+                <div class="editable-field-wrapper">
+                    <input type="text" id="companyNameInput" class="form-control form-control-lg editable-input-dark fw-bold" placeholder="Company Name">
+                    <span class="edit-icon">✏️</span>
+                </div>
+            </div>
+            <div class="col-4 col-md-3 text-end">
+                <div id="printDate" class="fw-bold small opacity-75"></div>
+                <div id="printRef" class="small fw-bold text-info" style="font-size: 10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-3">
+        <div class="price-master-card no-print shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center">
+                    <h6 class="m-0 fw-bold text-muted small me-2">LIVE PRICES (USD/TON)</h6>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size: 10px;" onclick="shareData('master')">📲 SHARE PRICES</button>
+                </div>
+                <button class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" onclick="addMasterItem()">+ NEW MATERIAL</button>
+            </div>
+            <div id="masterList" class="row g-2"></div>
+        </div>
+
+        <div id="recipeContainer"></div>
+
+        <div class="text-center mb-4 no-print">
+            <button class="btn w-100 py-3 add-batch-btn shadow-sm" id="addEmptyRecipe">
+                + ADD NEW BATCH
+            </button>
+        </div>
+
+        <div class="mt-4 pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-white border rounded no-print">
+                <label class="small fw-bold text-uppercase text-muted">Total Logistics / Transport Budget ($)</label>
+                <div class="editable-field-wrapper" style="width: 130px;">
+                    <input type="number" id="globalTransport" class="form-control form-control-sm border-primary calc-trigger text-center fw-bold" value="120">
+                </div>
+            </div>
+
+            <h6 class="fw-bold text-muted small mb-3 text-uppercase no-print">Inventory Needed (Total Tons)</h6>
+            <div id="inventoryList" class="row g-2 no-print"></div>
+
+            <div class="total-payment-box shadow-sm mt-3">
+                <div class="row align-items-center text-center">
+                    <div class="col-md-4 mb-3 mb-md-0 border-md-end">
+                        <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 11px;">Total Volume</small>
+                        <span class="h3 fw-bold"><span id="summaryTotalTons">0.00</span> <small class="text-muted" style="font-size: 16px;">Tons</small></span>
+                    </div>
+                    <div class="col-md-8">
+                        <small class="text-uppercase fw-bold text-primary d-block" style="font-size: 11px;">Total Amount to be Paid (Incl. Logistics)</small>
+                        <span class="h1 fw-bold text-primary mb-0">$<span id="summaryGrandTotal">0.00</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4 no-print">
+            <button class="btn btn-dark btn-lg w-100 fw-bold shadow pdf-btn">GENERATE PRODUCTION PDF</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade no-print" id="templateModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header fw-bold">
+            Saved Formulations
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body"><ul id="templateManageList" class="list-group"></ul></div>
+    </div></div>
+</div>
+
+<div class="modal fade no-print" id="importModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white fw-bold"><h5 class="modal-title">Data Received</h5></div>
+            <div class="modal-body">
+                <p id="importMsg" class="fw-bold mb-2"></p>
+                <div id="importPreview" class="p-2 bg-light rounded small border" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary w-100 fw-bold" id="confirmImportBtn">Accept and Load Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<template id="recipeTemplate">
+    <div class="recipe-card shadow-sm">
+        <div class="recipe-header border-bottom mb-2 pb-2">
+            <div class="row g-2 align-items-end">
+                <div class="col-8 col-md-4">
+                    <input type="text" class="form-control form-control-sm recipe-name fw-bold" placeholder="Mix Name (e.g., Layer Phase 1)">
+                </div>
+                <div class="col-4 col-md-2 text-center">
+                    <label class="small text-muted fw-bold d-block" style="font-size: 9px;">BATCH TONS</label>
+                    <input type="number" class="form-control form-control-sm calc-trigger recipeTons text-center fw-bold" value="1" step="0.1">
+                </div>
+                <div class="col-4 col-md-2 text-center no-print">
+                    <label class="small text-danger fw-bold d-block" style="font-size: 9px;">OP. COST/T</label>
+                    <input type="number" class="form-control form-control-sm calc-trigger op-cost text-center text-danger fw-bold" value="10">
+                </div>
+                <div class="col-12 col-md-4 text-end no-print mt-2">
+                    <div class="input-group input-group-sm">
+                        <select class="form-select load-template"></select>
+                        <button class="btn btn-outline-secondary" onclick="jQuery('#templateModal').modal('show')">⚙️</button>
+                        <button class="btn btn-primary save-recipe-btn">SAVE</button>
+                        <button class="btn btn-outline-danger remove-recipe">✕</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light small text-uppercase">
+                    <tr><th>Material</th><th class="text-center">KG/T</th><th class="text-end">Cost</th><th class="no-print"></th></tr>
+                </thead>
+                <tbody class="ingredient-body"></tbody>
+                <tfoot>
+                    <tr>
+                        <td class="pt-3"><button class="btn btn-xs btn-link p-0 no-print fw-bold text-decoration-none add-row">+ ADD MATERIAL</button></td>
+                        <td class="text-center fw-bold pt-3"><span class="batch-weight-sum">0</span> KG</td>
+                        <td colspan="2" class="text-end pt-3">
+                            <div class="fw-bold text-dark" style="font-size: 0.95rem;">
+                                Total Mix Cost: <span class="text-primary">$<span class="batch-total-cost">0.00</span></span>
+                            </div>
+                            <span class="breakdown-text">
+                                <span class="me-2">M:$<span class="br-mat">0</span> | O:$<span class="br-op">0</span> | T:$<span class="br-tr">0</span></span>
+                                <span class="fw-bold text-primary" style="font-size: 13px;">$ <span class="finalTonCost">0.00</span> / Ton</span>
+                            </span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</template>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function() {
+    // --- DATA STATE ---
+    let priceMaster = JSON.parse(localStorage.getItem('poultry_price_master')) || { "Corn": 245, "Soya 48%": 485, "Limestone": 45 };
+    
+    function init() {
+        const date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+        $('#printDate').text(date);
+        $('#printRef').text('ID: ' + Math.random().toString(36).substr(2, 6).toUpperCase());
+        $('#companyNameInput').val(localStorage.getItem('poultry_company_name') || "Poultry Production Report");
+        $('#globalTransport').val(localStorage.getItem('poultry_global_trans') || 120);
+        
+        renderMasterList();
+        addRecipe();
+        checkForImports();
+        refreshDropdowns();
+    }
+
+    // --- SHARE SYSTEM ---
+    window.shareData = async (type, recipeName = null) => {
+        let url = window.location.origin + window.location.pathname;
+        let title = "Poultry Feed Data";
+        
+        if (type === 'master') {
+            url += '?importMaster=' + btoa(JSON.stringify(priceMaster));
+            title = "Updated Market Prices";
+        } else {
+            const saved = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+            url += '?importRecipe=' + btoa(JSON.stringify(saved[recipeName]));
+            title = `Feed Mix: ${recipeName}`;
+        }
+
+        if (navigator.share) {
+            try { await navigator.share({ title: title, url: url }); } 
+            catch (err) { console.log("Share failed", err); }
+        } else {
+            navigator.clipboard.writeText(url).then(() => alert("Link copied to clipboard!"));
+        }
+    };
+
+    function checkForImports() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('importMaster') || params.has('importRecipe')) {
+            const isMat = params.has('importMaster');
+            const data = JSON.parse(atob(params.get(isMat ? 'importMaster' : 'importRecipe')));
+            
+            $('#importMsg').text(isMat ? "Found Price Master Import. Overwrite your current prices?" : "Found Shared Mix formulation. Save to your templates?");
+            $('#importPreview').html(isMat 
+                ? Object.entries(data).map(([n, p]) => `<div>${n}: $${p}</div>`).join('')
+                : data.map(i => `<div>${i.n}: ${i.k}kg</div>`).join('')
+            );
+
+            $('#confirmImportBtn').off().on('click', () => {
+                if(isMat) {
+                    priceMaster = data;
+                    localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+                } else {
+                    const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+                    s["Imported Mix " + Date.now().toString().slice(-4)] = data;
+                    localStorage.setItem('poultry_templates', JSON.stringify(s));
+                }
+                window.location.href = window.location.pathname; // Clear URL
+            });
+            new bootstrap.Modal('#importModal').show();
+        }
+    }
+
+    // --- CALCULATION CORE ---
+    window.calculateAll = function() {
+        let totalTons = 0, sessionTotal = 0, inventory = {};
+        const globalTrans = parseFloat($('#globalTransport').val()) || 0;
+        localStorage.setItem('poultry_global_trans', globalTrans);
+
+        $('.recipe-card').each(function() { totalTons += parseFloat($(this).find('.recipeTons').val()) || 0; });
+        const transPerTon = totalTons > 0 ? (globalTrans / totalTons) : 0;
+
+        $('.recipe-card').each(function() {
+            const $card = $(this); let matSub = 0, totKg = 0;
+            const batchT = parseFloat($card.find('.recipeTons').val()) || 0;
+            const opC = parseFloat($card.find('.op-cost').val()) || 0;
+
+            $card.find('.ingredient-body tr').each(function() {
+                const n = $(this).find('.mat-name').val();
+                const p = priceMaster[n] || 0;
+                const k = parseFloat($(this).find('.kg').val()) || 0;
+                
+                if(n && k > 0) inventory[n] = (inventory[n] || 0) + (k * batchT);
+                
+                const rowSub = (p / 1000) * k;
+                $(this).find('.row-total').text(rowSub.toFixed(2));
+                matSub += rowSub; 
+                totKg += k;
+            });
+
+            const unitMat = totKg > 0 ? (matSub / totKg) * 1000 : 0;
+            const finalU = unitMat + opC + transPerTon;
+            const batchTotal = finalU * batchT;
+
+            $card.find('.batch-weight-sum').text(totKg.toFixed(0));
+            $card.find('.br-mat').text(unitMat.toFixed(0));
+            $card.find('.br-op').text(opC.toFixed(0));
+            $card.find('.br-tr').text(transPerTon.toFixed(0));
+            $card.find('.finalTonCost').text(finalU.toFixed(2));
+            $card.find('.batch-total-cost').text(batchTotal.toLocaleString(undefined, {minimumFractionDigits: 2}));
+            
+            sessionTotal += batchTotal;
+        });
+
+        $('#summaryTotalTons').text(totalTons.toFixed(2));
+        $('#summaryGrandTotal').text(sessionTotal.toLocaleString(undefined, {minimumFractionDigits: 2}));
+        renderInventory(inventory);
+    };
+
+    function renderInventory(inv) {
+        const $box = $('#inventoryList').empty();
+        Object.entries(inv).sort().forEach(([n, k]) => {
+            $box.append(`<div class="col-6 col-md-3"><div class="inventory-card">
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 9px;">${n}</div>
+                <div class="h6 fw-bold mb-0">${(k/1000).toFixed(2)} Tons</div>
+            </div></div>`);
+        });
+    }
+
+    // --- UI RENDERING ---
+    function renderMasterList() {
+        $('#masterList').empty();
+        Object.entries(priceMaster).forEach(([n, p]) => {
+            $('#masterList').append(`<div class="col-6 col-md-3"><div class="input-group input-group-sm shadow-sm">
+                <span class="input-group-text border-0 small py-0 bg-light" style="width:55%; font-size:10px">${n}</span>
+                <input type="number" class="form-control border-0 master-price-input text-center py-0 fw-bold" data-name="${n}" value="${p}">
+            </div></div>`);
+        });
+        localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+        updateDatalist();
+        calculateAll();
+    }
+
+    function updateDatalist() {
+        $('#masterNames').empty();
+        Object.keys(priceMaster).forEach(name => $('#masterNames').append(`<option value="${name}">`));
+    }
+
+    function addRecipe(data = null, name = "") {
+        const temp = document.getElementById('recipeTemplate').content.cloneNode(true);
+        $('#recipeContainer').append(temp);
+        const $card = $('.recipe-card').last();
+        if (data) {
+            $card.find('.recipe-name').val(name);
+            $card.find('.ingredient-body').empty();
+            data.forEach(d => addRow($card, d.n, d.k));
+        } else {
+            addRow($card);
+        }
+        refreshDropdowns();
+    }
+
+    function addRow($c, n="", k=0) {
+        $c.find('.ingredient-body').append(`
+            <tr>
+                <td><input type="text" class="form-control form-control-sm mat-name border-0 fw-bold" value="${n}" list="masterNames"></td>
+                <td><input type="number" class="form-control form-control-sm kg text-center border-0 fw-bold" value="${k}"></td>
+                <td class="text-end fw-bold row-total">0.00</td>
+                <td class="no-print text-center"><button class="btn btn-sm text-danger remove-row">✕</button></td>
+            </tr>
+        `);
+        calculateAll();
+    }
+
+    // --- TEMPLATE LOGIC ---
+    function refreshDropdowns() {
+        const saved = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+        $('.load-template').each(function() {
+            $(this).empty().append('<option value="">-- Load Mix --</option>');
+            Object.keys(saved).forEach(k => $(this).append(`<option value="${k}">${k}</option>`));
+        });
+        $('#templateManageList').empty();
+        Object.keys(saved).forEach(k => { 
+            $('#templateManageList').append(`
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="fw-bold small">${k}</span>
+                    <div>
+                        <button class="btn btn-xs btn-outline-primary me-1 fw-bold" onclick="shareData('recipe', '${k}')" style="font-size:10px">SHARE</button>
+                        <button class="btn btn-xs btn-danger fw-bold" onclick="deleteTemplate('${k}')" style="font-size:10px">✕</button>
+                    </div>
+                </li>
+            `); 
+        });
+    }
+
+    window.deleteTemplate = (n) => {
+        if(confirm(`Delete ${n}?`)) {
+            const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+            delete s[n];
+            localStorage.setItem('poultry_templates', JSON.stringify(s));
+            refreshDropdowns();
+        }
+    };
+
+    $(document).on('click', '.save-recipe-btn', function() {
+        const $card = $(this).closest('.recipe-card');
+        const name = $card.find('.recipe-name').val();
+        if(!name) return alert("Please enter a Mix Name first");
+        
+        const ingredients = [];
+        $card.find('.ingredient-body tr').each(function() {
+            ingredients.push({ n: $(this).find('.mat-name').val(), k: $(this).find('.kg').val() });
+        });
+
+        const saved = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+        saved[name] = ingredients;
+        localStorage.setItem('poultry_templates', JSON.stringify(saved));
+        refreshDropdowns();
+        alert("Formulation Saved Locally");
+    });
+
+    $(document).on('change', '.load-template', function() {
+        const name = $(this).val();
+        if(!name) return;
+        const data = JSON.parse(localStorage.getItem('poultry_templates'))[name];
+        const $card = $(this).closest('.recipe-card');
+        $card.find('.recipe-name').val(name);
+        $card.find('.ingredient-body').empty();
+        data.forEach(d => addRow($card, d.n, d.k));
+        calculateAll();
+    });
+
+    // --- EVENT LISTENERS ---
+    $(document).on('input', '#companyNameInput', function() { localStorage.setItem('poultry_company_name', $(this).val()); });
+    $(document).on('click', '#addEmptyRecipe', () => addRecipe());
+    $(document).on('click', '.add-row', function() { addRow($(this).closest('.recipe-card')); });
+    $(document).on('click', '.remove-row', function() { $(this).closest('tr').remove(); calculateAll(); });
+    $(document).on('click', '.remove-recipe', function() { if(confirm("Remove this batch?")) { $(this).closest('.recipe-card').remove(); calculateAll(); } });
+    
+    $(document).on('input', '.calc-trigger, .kg, .mat-name, .master-price-input', function() {
+        if($(this).hasClass('master-price-input')) {
+            priceMaster[$(this).data('name')] = parseFloat($(this).val()) || 0;
+            localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+            updateDatalist();
+        }
+        calculateAll();
+    });
+
+    window.addMasterItem = () => {
+        const n = prompt("New Material Name (e.g., Soy Oil):");
+        if(n && !priceMaster[n]) { priceMaster[n] = 0; renderMasterList(); }
+    };
+
+    $(document).on('click', '.pdf-btn', () => window.print());
+
+    init();
+});
+</script>
+<datalist id="masterNames"></datalist>
+</body>
+</html>
