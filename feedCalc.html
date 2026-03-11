@@ -109,11 +109,28 @@
     </div>
 </div>
 
-<div class="modal fade no-print" id="templateModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header fw-bold">Manage Saved Mixes <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><ul id="templateManageList" class="list-group"></ul></div>
-    </div></div>
+<div class="modal fade no-print" id="importModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white fw-bold">
+                <h5 class="modal-title">Data Received</h5>
+            </div>
+            <div class="modal-body">
+                <p id="importMsg" class="fw-bold mb-2 small text-muted"></p>
+                
+                <div id="nameInputWrapper" class="mb-3">
+                    <label class="small fw-bold text-uppercase">Save Mix As:</label>
+                    <input type="text" id="importCustomName" class="form-control fw-bold border-primary" placeholder="e.g., Hy-Line Phase 1">
+                </div>
+
+                <div id="importPreview" class="p-2 bg-light rounded border" style="max-height: 150px; overflow-y: auto; font-size: 11px;"></div>
+            </div>
+            <div class="modal-footer flex-column">
+                <button class="btn btn-primary w-100 fw-bold mb-2" id="confirmImportBtn">Accept and Save</button>
+                <button class="btn btn-outline-secondary btn-sm w-100" id="declineImportBtn">Decline / Cancel</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade no-print" id="importModal" tabindex="-1" data-bs-backdrop="static">
@@ -213,40 +230,52 @@ $(document).ready(function() {
         }
     };
 
-    function checkForImports() {
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('importMaster') || params.has('importRecipe')) {
-            const isMat = params.has('importMaster');
-            const data = JSON.parse(atob(params.get(isMat ? 'importMaster' : 'importRecipe')));
-            
-            $('#importMsg').text(isMat ? "Incoming Price List detected. Overwrite current prices?" : "Incoming Shared Formulation detected. Save to your mixes?");
-            $('#importPreview').html(isMat 
-                ? Object.entries(data).map(([n, p]) => `<div>${n}: $${p}</div>`).join('')
-                : data.map(i => `<div>${i.n}: ${i.k}kg</div>`).join('')
-            );
-
-            $('#confirmImportBtn').off().on('click', () => {
-    if(isMat) {
-        // Price Master Import
-        priceMaster = data;
-        localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
-    } else {
-        // Recipe/Mix Import - Now with Renaming
-        const defaultName = "Imported Mix " + new Date().toLocaleDateString();
-        const customName = prompt("Enter a name for this shared formulation:", defaultName);
+   function checkForImports() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('importMaster') || params.has('importRecipe')) {
+        const isMat = params.has('importMaster');
+        const data = JSON.parse(atob(params.get(isMat ? 'importMaster' : 'importRecipe')));
         
-        if (customName === null) return; // User cancelled import
-
-        const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
-        s[customName] = data;
-        localStorage.setItem('poultry_templates', JSON.stringify(s));
-    }
-    // Refresh page to clear URL and update lists
-    window.location.href = window.location.pathname; 
-});
-            new bootstrap.Modal('#importModal').show();
+        // UI Setup
+        $('#importMsg').text(isMat ? "Update Material Price List?" : "New Feed Mix Received:");
+        
+        // Hide name input if it's just prices, show if it's a Mix
+        if (isMat) {
+            $('#nameInputWrapper').hide();
+        } else {
+            $('#nameInputWrapper').show();
+            $('#importCustomName').val("Imported Mix " + new Date().toLocaleDateString());
         }
+
+        $('#importPreview').html(isMat 
+            ? Object.entries(data).map(([n, p]) => `<div>${n}: $${p}</div>`).join('')
+            : data.map(i => `<div>${i.n}: ${i.k}kg</div>`).join('')
+        );
+
+        // ACTION: ACCEPT
+        $('#confirmImportBtn').off().on('click', () => {
+            if(isMat) {
+                priceMaster = data;
+                localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+            } else {
+                const customName = $('#importCustomName').val() || "Unnamed Mix";
+                const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+                s[customName] = data;
+                localStorage.setItem('poultry_templates', JSON.stringify(s));
+            }
+            window.location.href = window.location.pathname; // Clear URL and Refresh
+        });
+
+        // ACTION: DECLINE
+        $('#declineImportBtn').off().on('click', () => {
+            if(confirm("Ignore this shared data?")) {
+                window.location.href = window.location.pathname; // Just clear the URL
+            }
+        });
+
+        new bootstrap.Modal('#importModal').show();
     }
+}
 
     // --- CALCULATION CORE ---
     window.calculateAll = function() {
