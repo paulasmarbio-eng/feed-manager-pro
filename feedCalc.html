@@ -348,8 +348,11 @@ $(document).ready(function() {
     }
 
     // --- UI RENDERING ---
-    function renderMasterList() {
-        const $list = $('#masterList').empty();
+    // MODIFIED: Only builds the HTML when strictly necessary
+function renderMasterList() {
+    const $list = $('#masterList');
+    // Check if the list is empty (first load). If not, don't rebuild it while user types!
+    if ($list.children().length === 0) {
         Object.entries(priceMaster).forEach(([n, p]) => {
             $list.append(`<div class="col-6 col-md-3"><div class="input-group input-group-sm shadow-sm">
                 <span class="input-group-text border-0 small py-0 bg-light" style="width:50%; font-size:10px">${n}</span>
@@ -357,10 +360,11 @@ $(document).ready(function() {
                 <button class="btn btn-outline-danger border-0 py-0 px-2" onclick="deleteMasterItem('${n}')">✕</button>
             </div></div>`);
         });
-        localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
-        updateDatalist();
-        calculateAll();
     }
+    localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+    updateDatalist();
+    calculateAll();
+}
 
     function updateDatalist() {
         $('#masterNames').empty();
@@ -459,13 +463,20 @@ function refreshDropdowns() {
     $(document).on('click', '.add-row', function() { addRow($(this).closest('.recipe-card')); });
     $(document).on('click', '.remove-row', function() { $(this).closest('tr').remove(); calculateAll(); });
     $(document).on('click', '.remove-recipe', function() { if(confirm("Remove this batch?")) { $(this).closest('.recipe-card').remove(); calculateAll(); } });
-    $(document).on('input', '.calc-trigger, .kg, .mat-name, .master-price-input', function() {
-        if($(this).hasClass('master-price-input')) {
-            priceMaster[$(this).data('name')] = parseFloat($(this).val()) || 0;
-            renderMasterList();
-        }
-        calculateAll();
-    });
+    // MODIFIED: Specific listener for Master Prices to prevent focus loss
+$(document).on('input', '.master-price-input', function() {
+    const name = $(this).data('name');
+    const val = parseFloat($(this).val()) || 0;
+    
+    // 1. Update the data object
+    priceMaster[name] = val;
+    
+    // 2. Save to memory without refreshing the HTML
+    localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+    
+    // 3. Run calculations (this updates the $ totals but leaves your keyboard alone)
+    calculateAll();
+});
 
     window.deleteMasterItem = (n) => { if(confirm(`Remove ${n}?`)) { delete priceMaster[n]; renderMasterList(); } };
     window.addMasterItem = () => { const n = prompt("New Material:"); if(n) { priceMaster[n] = 0; renderMasterList(); } };
