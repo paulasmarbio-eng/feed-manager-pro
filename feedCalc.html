@@ -270,18 +270,33 @@ $(document).ready(function() {
         );
 
         // ACTION: ACCEPT
-        $('#confirmImportBtn').off().on('click', () => {
-            if(isMat) {
-                priceMaster = data;
-                localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
-            } else {
-                const customName = $('#importCustomName').val() || "Unnamed Mix";
-                const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
-                s[customName] = data;
-                localStorage.setItem('poultry_templates', JSON.stringify(s));
-            }
-            window.location.href = window.location.pathname; // Clear URL and Refresh
+        // FIND THIS SECTION IN YOUR checkForImports() function:
+$('#confirmImportBtn').off().on('click', () => {
+    if(isMat) {
+        // --- START OF MERGE LOGIC ---
+        // Instead of priceMaster = data (which overwrites everything)
+        // We loop through the new data and add/update only those items
+        Object.keys(data).forEach(key => {
+            priceMaster[key] = data[key]; 
         });
+        
+        // Save the combined list to memory
+        localStorage.setItem('poultry_price_master', JSON.stringify(priceMaster));
+        
+        // Clear the HTML so the screen actually shows the new/updated items
+        $('#masterList').empty(); 
+        // --- END OF MERGE LOGIC ---
+        
+    } else {
+        // (This part for Recipes/Mixes stays the same)
+        const customName = $('#importCustomName').val() || "Unnamed Mix";
+        const s = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+        s[customName] = data;
+        localStorage.setItem('poultry_templates', JSON.stringify(s));
+    }
+    // Clear URL and refresh UI
+    window.location.href = window.location.pathname; 
+});
 
         // ACTION: DECLINE
         $('#declineImportBtn').off().on('click', () => {
