@@ -157,7 +157,7 @@
                 </div>
                 <div class="col-4 col-md-2 text-center no-print">
                     <label class="small text-danger fw-bold d-block" style="font-size: 9px;">OP. COST/T</label>
-                    <input type="number" class="form-control form-control-sm calc-trigger op-cost text-center text-danger fw-bold" value="10">
+                    <input type="number" class="form-control form-control-sm calc-trigger op-cost text-center text-danger fw-bold" value="0">
                 </div>
                 <div class="col-12 col-md-4 text-end no-print mt-2">
                     <div class="input-group input-group-sm">
@@ -207,8 +207,8 @@ $(document).ready(function() {
         const date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
         $('#printDate').text(date);
         $('#printRef').text('ID: ' + Math.random().toString(36).substr(2, 6).toUpperCase());
-        $('#companyNameInput').val(localStorage.getItem('poultry_company_name') || "Poultry Production Report");
-        $('#globalTransport').val(localStorage.getItem('poultry_global_trans') || 120);
+        $('#companyNameInput').val(localStorage.getItem('poultry_company_name') || "Company Name");
+        $('#globalTransport').val(localStorage.getItem('poultry_global_trans') || '0');
         
         renderMasterList();
         addRecipe();
@@ -452,4 +452,5 @@ $(document).ready(function() {
 </script>
 <datalist id="masterNames"></datalist>
 </body>
+
 </html>
