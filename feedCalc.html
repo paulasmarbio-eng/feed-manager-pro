@@ -160,13 +160,30 @@
                 <div class="col-12 col-md-4 text-end no-print mt-2">
                     <div class="input-group input-group-sm">
                         <select class="form-select load-template"></select>
-                        <button class="btn btn-outline-secondary" onclick="jQuery('#templateModal').modal('show')">⚙️</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#templateModal">⚙️</button>
                         <button class="btn btn-primary save-recipe-btn">SAVE</button>
                         <button class="btn btn-outline-danger remove-recipe">✕</button>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="modal fade no-print" id="templateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header fw-bold">
+                Manage Saved Mixes 
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul id="templateManageList" class="list-group">
+                    </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
                 <thead class="table-light small text-uppercase"><tr><th>Material</th><th class="text-center">KG/T</th><th class="text-end">Cost</th><th class="no-print"></th></tr></thead>
@@ -377,25 +394,39 @@ $(document).ready(function() {
     }
 
     // --- TEMPLATE LOGIC ---
-    function refreshDropdowns() {
-        const saved = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
-        $('.load-template').each(function() {
-            $(this).empty().append('<option value="">-- Load Saved --</option>');
-            Object.keys(saved).forEach(k => $(this).append(`<option value="${k}">${k}</option>`));
-        });
-        $('#templateManageList').empty();
+  // Force refresh the list whenever the Manage Modal is about to show
+$('#templateModal').on('show.bs.modal', function () {
+    refreshDropdowns(); 
+});
+
+// The actual refresh function (Ensure this matches your script)
+function refreshDropdowns() {
+    const saved = JSON.parse(localStorage.getItem('poultry_templates') || '{}');
+    
+    // Update the dropdowns in the recipe cards
+    $('.load-template').each(function() {
+        $(this).empty().append('<option value="">-- Load Saved --</option>');
+        Object.keys(saved).forEach(k => $(this).append(`<option value="${k}">${k}</option>`));
+    });
+
+    // Update the management list inside the modal
+    const $manageList = $('#templateManageList').empty();
+    if (Object.keys(saved).length === 0) {
+        $manageList.append('<li class="list-group-item text-center text-muted small">No saved mixes found</li>');
+    } else {
         Object.keys(saved).forEach(k => { 
-            $('#templateManageList').append(`
+            $manageList.append(`
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="fw-bold small">${k}</span>
-                    <div>
-                        <button class="btn btn-xs btn-outline-primary me-1 fw-bold" onclick="shareData('recipe', '${k}')">SHARE</button>
-                        <button class="btn btn-xs btn-danger" onclick="deleteTemplate('${k}')">✕</button>
+                    <div class="btn-group">
+                        <button class="btn btn-xs btn-outline-primary fw-bold py-1" onclick="shareData('recipe', '${k}')" style="font-size:10px">SHARE</button>
+                        <button class="btn btn-xs btn-danger fw-bold py-1" onclick="deleteTemplate('${k}')" style="font-size:10px">✕</button>
                     </div>
                 </li>
             `); 
         });
     }
+}
 
     window.deleteTemplate = (n) => {
         if(confirm(`Delete ${n}?`)) {
